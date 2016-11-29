@@ -1,0 +1,9 @@
+How to import into qsdk
+$cd qsdk_repos
+$make menuconfig
+
+Advanced configuration options (for developers) -->
+Use external kernel tree
+
+INPUT: $(TOPDIR)/kernel_repos
+
