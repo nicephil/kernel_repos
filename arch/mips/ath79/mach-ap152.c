@@ -46,8 +46,14 @@
 #define AP152_GPIO_LED_LAN3             14
 #define AP152_GPIO_LED_LAN4             11
 
+#if !OK_PATCH
 #define AP152_GPIO_LED_USB0		7
 #define AP152_GPIO_LED_USB1		8
+#else
+#define AP152_GPIO_LED_RED		6
+#define AP152_GPIO_LED_GREEN	7
+#define AP152_GPIO_LED_BLUE		8
+#endif /* OK_PATCH */
 
 #define AP152_GPIO_BTN_RESET            2
 #define AP152_GPIO_BTN_WPS              1
@@ -62,6 +68,7 @@
 #define AP152_GPIO_MDIO			4
 
 static struct gpio_led ap152_leds_gpio[] __initdata = {
+#if !OK_PATCH
 	{
 		.name		= "ap152:green:usb0",
 		.gpio		= AP152_GPIO_LED_USB0,
@@ -72,6 +79,23 @@ static struct gpio_led ap152_leds_gpio[] __initdata = {
 		.gpio		= AP152_GPIO_LED_USB1,
 		.active_low	= 1,
 	},
+#else
+	{
+		.name		= "ap152:red:status",
+		.gpio		= AP152_GPIO_LED_RED,
+		.active_low	= 1,
+	},
+	{
+		.name		= "ap152:green:status",
+		.gpio		= AP152_GPIO_LED_GREEN,
+		.active_low	= 1,
+	},
+	{
+		.name		= "ap152:blue:status",
+		.gpio		= AP152_GPIO_LED_BLUE,
+		.active_low	= 1,
+	},
+#endif /* OK_PATCH */
 };
 
 static struct gpio_keys_button ap152_gpio_keys[] __initdata = {
