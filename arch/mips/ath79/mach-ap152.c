@@ -50,15 +50,25 @@
 #define AP152_GPIO_LED_USB0		7
 #define AP152_GPIO_LED_USB1		8
 #else
+#if 0
 #define AP152_GPIO_LED_RED		6
 #define AP152_GPIO_LED_GREEN	7
 #define AP152_GPIO_LED_BLUE		8
+#else
+#define AP152_GPIO_LED_GREEN	1
+#endif
 #endif /* OK_PATCH */
 
+#if !OK_PATCH
 #define AP152_GPIO_BTN_RESET            2
 #define AP152_GPIO_BTN_WPS              1
 #define AP152_KEYS_POLL_INTERVAL        20     /* msecs */
 #define AP152_KEYS_DEBOUNCE_INTERVAL    (3 * AP152_KEYS_POLL_INTERVAL)
+#else
+#define AP152_GPIO_BTN_RESET            2
+#define AP152_KEYS_POLL_INTERVAL        20     /* msecs */
+#define AP152_KEYS_DEBOUNCE_INTERVAL    (3 * AP152_KEYS_POLL_INTERVAL)
+#endif
 
 #define AP152_MAC0_OFFSET               0
 #define AP152_MAC1_OFFSET               6
@@ -80,6 +90,7 @@ static struct gpio_led ap152_leds_gpio[] __initdata = {
 		.active_low	= 1,
 	},
 #else
+#if 0
 	{
 		.name		= "ap152:red:status",
 		.gpio		= AP152_GPIO_LED_RED,
@@ -95,10 +106,19 @@ static struct gpio_led ap152_leds_gpio[] __initdata = {
 		.gpio		= AP152_GPIO_LED_BLUE,
 		.active_low	= 1,
 	},
+#else
+	{
+		.name		= "ap152:green:status",
+		.gpio		= AP152_GPIO_LED_GREEN,
+		.active_low	= 1,
+	},
+
+#endif
 #endif /* OK_PATCH */
 };
 
 static struct gpio_keys_button ap152_gpio_keys[] __initdata = {
+#if !OK_PATCH
         {
                 .desc           = "WPS button",
                 .type           = EV_KEY,
@@ -115,6 +135,27 @@ static struct gpio_keys_button ap152_gpio_keys[] __initdata = {
                 .gpio           = AP152_GPIO_BTN_RESET,
                 .active_low     = 1,
         },
+#else
+#if 0
+        {
+                .desc           = "WPS button",
+                .type           = EV_KEY,
+                .code           = KEY_WPS_BUTTON,
+                .debounce_interval = AP152_KEYS_DEBOUNCE_INTERVAL,
+                .gpio           = AP152_GPIO_BTN_WPS,
+                .active_low     = 1,
+        },
+#endif
+        {
+                .desc           = "Reset button",
+                .type           = EV_KEY,
+                .code           = KEY_RESTART,
+                .debounce_interval = AP152_KEYS_DEBOUNCE_INTERVAL,
+                .gpio           = AP152_GPIO_BTN_RESET,
+                .active_low     = 1,
+        },
+
+#endif
 };
 
 static struct ar8327_pad_cfg ap152_ar8337_pad0_cfg = {
