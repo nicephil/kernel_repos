@@ -50,9 +50,7 @@
 #define AP152_GPIO_LED_USB0		7
 #define AP152_GPIO_LED_USB1		8
 #else
-#define AP152_GPIO_LED_RED		6
-#define AP152_GPIO_LED_GREEN	7
-#define AP152_GPIO_LED_BLUE		8
+#define AP152_GPIO_LED_GREEN	1
 #endif /* OK_PATCH */
 
 #if !OK_PATCH
@@ -87,18 +85,8 @@ static struct gpio_led ap152_leds_gpio[] __initdata = {
 	},
 #else
 	{
-		.name		= "ap152:red:status",
-		.gpio		= AP152_GPIO_LED_RED,
-		.active_low	= 1,
-	},
-	{
 		.name		= "ap152:green:status",
 		.gpio		= AP152_GPIO_LED_GREEN,
-		.active_low	= 1,
-	},
-	{
-		.name		= "ap152:blue:status",
-		.gpio		= AP152_GPIO_LED_BLUE,
 		.active_low	= 1,
 	},
 #endif /* OK_PATCH */
@@ -202,5 +190,5 @@ static void __init ap152_setup(void)
 	ath79_register_eth(0);
 }
 
-MIPS_MACHINE(ATH79_MACH_AP152, "AP152", "Qualcomm Atheros AP152 reference board",
+MIPS_MACHINE(ATH79_MACH_AP152_QTSA820, "AP152-QTSA820", "Qualcomm Atheros AP152-QTSA820 board",
 	     ap152_setup);
