@@ -102,9 +102,9 @@ static struct gpio_keys_button ap152_gpio_keys[] __initdata = {
 
 static struct gpio_led ap152_qtsa820_leds_gpio[] __initdata = {
 	{
-		.name		= "ap152:green:usb1",
+		.name		= "ap152:green:status",
 		.gpio		= AP152_QTSA820_GPIO_LED_GREEN,
-		.active_low	= 1,
+		.active_low	= 0,
 	},
 };
 
