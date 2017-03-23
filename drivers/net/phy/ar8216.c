@@ -41,7 +41,12 @@
 #endif
 
 /* size of the vlan table */
+#if OK_PATCH
+/* for AR8327 */
+#define AR8X16_MAX_VLANS	4096
+#else /* !OK_PATCH */
 #define AR8X16_MAX_VLANS	128
+#endif /* OK_PATCH */
 #define AR8X16_PROBE_RETRIES	10
 #define AR8X16_MAX_PORTS	8
 

@@ -255,14 +255,12 @@ static void __init ap152_setup(void)
 {
 	u8 *art = (u8 *) KSEG1ADDR(0x1fff0000);
 
-#if OK_PATCH
-    ath79_init_dev_name(ok_dev_name, art);
-    printk("-->OK_DEV_NAME=%s", ok_dev_name);
-#endif /* OK_PATCH */
-
 	ath79_register_m25p80(NULL);
 
 #if OK_PATCH
+    ath79_init_dev_name(ok_dev_name, art);
+    printk("-->OK_DEV_NAME=%s", ok_dev_name);
+
 /* supported device list */
 #define AP152_QTSA820_DEV_NAME        "A820"
 #define AP152_WL8200T2_DEV_NAME       "WL8200-T2"
@@ -295,7 +293,7 @@ static void __init ap152_setup(void)
                 ap152_gpio_keys);
     }
 
-#else
+#else /* !OK_PATCH */
 
 	ath79_register_leds_gpio(-1, ARRAY_SIZE(ap152_leds_gpio),
 			ap152_leds_gpio);
