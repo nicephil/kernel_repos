@@ -84,7 +84,11 @@ struct ar8xxx_chip {
 	u32 (*read_port_status)(struct ar8216_priv *priv, int port);
 	int (*atu_flush)(struct ar8216_priv *priv);
 	void (*vtu_flush)(struct ar8216_priv *priv);
+#if OK_PATCH
+    void (*vtu_load_vlan)(struct ar8216_priv *priv, u32 vlan);
+#else
 	void (*vtu_load_vlan)(struct ar8216_priv *priv, u32 vid, u32 port_mask);
+#endif
 	int (*atu_dump)(struct ar8216_priv *priv);
 	int (*igmp_snooping)(struct ar8216_priv *priv, u32 enable);
 
@@ -124,7 +128,12 @@ struct ar8216_priv {
 	bool vlan;
 	u16 vlan_id[AR8X16_MAX_VLANS];
 	u8 vlan_table[AR8X16_MAX_VLANS];
-	u8 vlan_tagged;
+#if OK_PATCH
+    u8 vlan_tagged_8216;
+    u8 vlan_tagged_8327[AR8X16_MAX_VLANS];
+#else
+    u8 vlan_tagged;
+#endif
 	u16 pvid[AR8X16_MAX_PORTS];
 	/* if set, the vlan interface is UP */
 	u8 vlan_status[AR8X16_MAX_VLANS];
@@ -631,7 +640,11 @@ ar8216_mangle_rx(struct net_device *dev, struct sk_buff *skb)
 	port = buf[0] & 0xf;
 
 	/* no need to fix up packets coming from a tagged source */
+#if OK_PATCH
+   if (priv->vlan_tagged_8216 & (1 << port))
+#else
 	if (priv->vlan_tagged & (1 << port))
+#endif
 		return;
 
 	/* lookup port vid from local table, the switch passes an invalid vlan id */
@@ -685,9 +698,17 @@ ar8216_vtu_flush(struct ar8216_priv *priv)
 }
 
 static void
+#if OK_PATCH
+ar8216_vtu_load_vlan(struct ar8216_priv *priv, u32 vlan)
+#else
 ar8216_vtu_load_vlan(struct ar8216_priv *priv, u32 vid, u32 port_mask)
+#endif
 {
-	u32 op;
+    u32 op;
+#if OK_PATCH
+    u32 vid = priv->vlan_id[vlan];
+    u32 port_mask = priv->vlan_table[vlan];
+#endif
 
 	op = AR8216_VTU_OP_LOAD | (vid << AR8216_VTU_VID_S);
 	ar8216_vtu_op(priv, op, port_mask);
@@ -1609,11 +1630,20 @@ ar8327_vtu_flush(struct ar8216_priv *priv)
 }
 
 static void
+#if OK_PATCH
+ar8327_vtu_load_vlan(struct ar8216_priv *priv, u32 vlan)
+#else
 ar8327_vtu_load_vlan(struct ar8216_priv *priv, u32 vid, u32 port_mask)
+#endif
 {
 	u32 op;
 	u32 val;
-	int i;
+    int i;
+#if OK_PATCH
+    u32 vid = priv->vlan_id[vlan];
+    u32 port_mask = priv->vlan_table[vlan];
+    u32 tagged = priv->vlan_tagged_8327[vlan];
+#endif
 
 	op = AR8327_VTU_FUNC1_OP_LOAD | (vid << AR8327_VTU_FUNC1_VID_S);
 	val = AR8327_VTU_FUNC0_VALID | AR8327_VTU_FUNC0_IVL;
@@ -1622,9 +1652,13 @@ ar8327_vtu_load_vlan(struct ar8216_priv *priv, u32 vid, u32 port_mask)
 
 		if ((port_mask & BIT(i)) == 0)
 			mode = AR8327_VTU_FUNC0_EG_MODE_NOT;
-		else if (priv->vlan == 0)
-			mode = AR8327_VTU_FUNC0_EG_MODE_KEEP;
-		else if (priv->vlan_tagged & BIT(i))
+        else if (priv->vlan == 0)
+            mode = AR8327_VTU_FUNC0_EG_MODE_KEEP;
+#if OK_PATCH
+        else if (tagged& BIT(i))
+#else
+        else if (priv->vlan_tagged & BIT(i))
+#endif
 			mode = AR8327_VTU_FUNC0_EG_MODE_TAG;
 		else
 			mode = AR8327_VTU_FUNC0_EG_MODE_UNTAG;
@@ -1638,13 +1672,26 @@ static void
 ar8327_setup_port(struct ar8216_priv *priv, int port, u32 egress, u32 ingress,
 		  u32 members, u32 pvid)
 {
-	u32 t;
-	u32 mode;
+    u32 t;
+    u32 mode;
+
+#if OK_PATCH
+    if (priv->vlan) {
+        pvid = priv->vlan_id[priv->pvid[port]];
+        mode = AR8327_PORT_VLAN1_OUT_MODE_UNMOD;
+        ingress = AR8216_IN_SECURE;
+    } else {
+        pvid = port;
+        mode = AR8327_PORT_VLAN1_OUT_MODE_UNTOUCH;
+        ingress = AR8216_IN_PORT_ONLY;
+    }
+#endif
 
 	t = pvid << AR8327_PORT_VLAN0_DEF_SVID_S;
 	t |= pvid << AR8327_PORT_VLAN0_DEF_CVID_S;
 	priv->write(priv, AR8327_REG_PORT_VLAN0(port), t);
 
+#if !OK_PATCH
 	mode = AR8327_PORT_VLAN1_OUT_MODE_UNMOD;
 	switch (egress) {
 	case AR8216_OUT_KEEP:
@@ -1657,6 +1704,7 @@ ar8327_setup_port(struct ar8216_priv *priv, int port, u32 egress, u32 ingress,
 		mode = AR8327_PORT_VLAN1_OUT_MODE_TAG;
 		break;
 	}
+#endif
 
 	t = AR8327_PORT_VLAN1_PORT_VLAN_PROP;
 	t |= mode << AR8327_PORT_VLAN1_OUT_MODE_S;
@@ -1813,22 +1861,40 @@ ar8216_sw_get_port_link(struct switch_dev *dev, int port,
 }
 
 static int
+#if OK_PATCH
+ar8xxx_sw_get_ports(struct switch_val *val, int ports, u8 port_mask, u8 tagged)
+#else
 ar8216_sw_get_ports(struct switch_dev *dev, struct switch_val *val)
+#endif
 {
+#if !OK_PATCH
 	struct ar8216_priv *priv = to_ar8216(dev);
 	u8 ports = priv->vlan_table[val->port_vlan];
+#endif
 	int i;
 
 	val->len = 0;
+#if OK_PATCH
+	for (i = 0; i < ports; i++) {
+#else
 	for (i = 0; i < dev->ports; i++) {
+#endif
 		struct switch_port *p;
 
-		if (!(ports & (1 << i)))
-			continue;
+#if OK_PATCH
+        if (!(port_mask & (1 << i)))
+#else
+        if (!(ports & (1 << i)))
+#endif
+            continue;
 
 		p = &val->value.ports[val->len++];
 		p->id = i;
-		if (priv->vlan_tagged & (1 << i))
+#if OK_PATCH
+        if (tagged & BIT(i))
+#else
+        if (priv->vlan_tagged & (1 << i))
+#endif
 			p->flags = (1 << SWITCH_PORT_FLAG_TAGGED);
 		else
 			p->flags = 0;
@@ -1840,17 +1906,42 @@ static int
 ar8216_sw_set_ports(struct switch_dev *dev, struct switch_val *val)
 {
 	struct ar8216_priv *priv = to_ar8216(dev);
-	u8 *vt = &priv->vlan_table[val->port_vlan];
+    u8 *vt = &priv->vlan_table[val->port_vlan];
+#if OK_PATCH
+    u8 *tagged = &priv->vlan_tagged_8216;
+#endif
 	int i, j;
 
 	*vt = 0;
 	for (i = 0; i < val->len; i++) {
 		struct switch_port *p = &val->value.ports[i];
 
+#if OK_PATCH
+        if (p->flags & BIT(SWITCH_PORT_FLAG_TAGGED)) {
+
+            /* if port was untagged before then
+             * remove him from other vlans */
+            if(*tagged & BIT(p->id)){
+                for (j = 0; j < AR8X16_MAX_VLANS; j++) {
+                    if (j == val->port_vlan)
+                        continue;
+
+                    priv->vlan_table[j] &= ~(BIT(p->id));
+                }
+            }
+
+            *tagged |= BIT(p->id);
+
+#else
 		if (p->flags & (1 << SWITCH_PORT_FLAG_TAGGED)) {
 			priv->vlan_tagged |= (1 << p->id);
+#endif
 		} else {
-			priv->vlan_tagged &= ~(1 << p->id);
+#if OK_PATCH
+            *tagged &= ~(BIT(p->id));
+#else
+            priv->vlan_tagged &= ~(1 << p->id);
+#endif
 			priv->pvid[p->id] = val->port_vlan;
 
 			/* make sure that an untagged port does not
@@ -1866,6 +1957,54 @@ ar8216_sw_set_ports(struct switch_dev *dev, struct switch_val *val)
 	}
 	return 0;
 }
+
+#if OK_PATCH
+    static int
+ar8327_sw_set_ports(struct switch_dev *dev, struct switch_val *val)
+{
+    struct ar8216_priv *priv = to_ar8216(dev);
+    u8 *vt = &priv->vlan_table[val->port_vlan];
+    u8 *vlan_tagged = priv->vlan_tagged_8327;
+    u8 *tagged = &vlan_tagged[val->port_vlan];
+
+    int i;
+
+    *vt = 0;
+    *tagged = 0;
+    for (i = 0; i < val->len; i++) {
+        struct switch_port *p = &val->value.ports[i];
+
+        if (p->flags & BIT(SWITCH_PORT_FLAG_TAGGED)) {
+            *tagged |= BIT(p->id);
+        } else {
+            priv->pvid[p->id] = val->port_vlan;
+        }
+
+        *vt |= BIT(p->id);
+    }
+    return 0;
+}
+    static int
+ar8216_sw_get_ports(struct switch_dev *dev, struct switch_val *val)
+{
+    int ports = dev->ports;
+    struct ar8216_priv *priv = to_ar8216(dev);
+    u8 port_mask = priv->vlan_table[val->port_vlan];
+    u8 tagged = priv->vlan_tagged_8216;
+
+    return ar8xxx_sw_get_ports(val, ports, port_mask, tagged);
+}
+    static int
+ar8327_sw_get_ports(struct switch_dev *dev, struct switch_val *val)
+{
+    int ports = dev->ports;
+    struct ar8216_priv *priv = to_ar8216(dev);
+    u8 port_mask = priv->vlan_table[val->port_vlan];
+    u8 tagged = priv->vlan_tagged_8327[val->port_vlan];
+
+    return ar8xxx_sw_get_ports(val, ports, port_mask, tagged);
+}
+#endif
 
 static int
 ar8216_sw_hw_apply(struct switch_dev *dev)
@@ -1894,8 +2033,12 @@ ar8216_sw_hw_apply(struct switch_dev *dev)
 					portmask[i] |= vp & ~mask;
 			}
 
-			priv->chip->vtu_load_vlan(priv, priv->vlan_id[j],
-						 priv->vlan_table[j]);
+#if OK_PATCH
+            priv->chip->vtu_load_vlan(priv, j);
+#else
+            priv->chip->vtu_load_vlan(priv, priv->vlan_id[j],
+                    priv->vlan_table[j]);
+#endif
 		}
 	} else {
 		/* vlan disabled:
@@ -1916,7 +2059,11 @@ ar8216_sw_hw_apply(struct switch_dev *dev)
 
 		if (priv->vlan) {
 			pvid = priv->vlan_id[priv->pvid[i]];
+#if OK_PATCH
+            if (priv->vlan_tagged_8216 & (1 << i))
+#else
 			if (priv->vlan_tagged & (1 << i))
+#endif
 				egress = AR8216_OUT_ADD_VLAN;
 			else
 				egress = AR8216_OUT_STRIP_VLAN;
@@ -2266,6 +2413,30 @@ static const struct switch_dev_ops ar8216_sw_ops = {
 	.get_reg_val = ar8216_sw_get_reg_val,
 	.set_reg_val = ar8216_sw_set_reg_val,
 };
+
+#if OK_PATCH
+static const struct switch_dev_ops ar8327_sw_ops = {
+    .attr_global = {
+        .attr = ar8216_globals,
+        .n_attr = ARRAY_SIZE(ar8216_globals),
+    },
+    .attr_port = {
+        .attr = ar8216_port,
+        .n_attr = ARRAY_SIZE(ar8216_port),
+    },
+    .attr_vlan = {
+        .attr = ar8216_vlan,
+        .n_attr = ARRAY_SIZE(ar8216_vlan),
+    },
+    .get_port_pvid = ar8216_sw_get_pvid,
+    .set_port_pvid = ar8216_sw_set_pvid,
+    .get_vlan_ports = ar8327_sw_get_ports,
+    .set_vlan_ports = ar8327_sw_set_ports,
+    .apply_config = ar8216_sw_hw_apply,
+    .reset_switch = ar8216_sw_reset_switch,
+    .get_port_link = ar8216_sw_get_port_link,
+};
+#endif
 
 static int
 ar8216_id_chip(struct ar8216_priv *priv)
@@ -2757,8 +2928,15 @@ ar8216_config_init(struct phy_device *pdev)
 	pdev->priv = priv;
 
 	swdev = &priv->dev;
-	swdev->cpu_port = AR8216_PORT_CPU;
+    swdev->cpu_port = AR8216_PORT_CPU;
+#if OK_PATCH
+    if(chip_is_ar8327(priv) || chip_is_ar8337(priv))
+        swdev->ops = &ar8327_sw_ops;
+    else
+        swdev->ops = &ar8216_sw_ops;
+#else
 	swdev->ops = &ar8216_sw_ops;
+#endif
 	swdev->ports = AR8216_NUM_PORTS;
 
 	if (chip_is_ar8316(priv)) {
