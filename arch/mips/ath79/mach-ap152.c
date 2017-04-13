@@ -104,7 +104,7 @@ static struct gpio_led ap152_qtsa820_leds_gpio[] __initdata = {
 	{
 		.name		= "ap152:green:status",
 		.gpio		= AP152_QTSA820_GPIO_LED_GREEN,
-		.active_low	= 0,
+		.active_low	= 1,
 	},
 };
 
