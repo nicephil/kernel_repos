@@ -110,6 +110,40 @@ static struct gpio_keys_button ap147_gpio_keys[] __initdata = {
 	},
 };
 
+
+
+#if OK_PATCH
+/* W282 */
+#define AP147_QTSW282_GPIO_LED_GREEN	13
+
+#define AP147_QTSW282_GPIO_LED_LAN	    4
+#define AP147_QTSW282_GPIO_LED_2G	    12
+#define AP147_QTSW282_GPIO_LED_5G	    1
+
+#define AP147_QTSW282_GPIO_BTN_RESET    17
+
+static struct gpio_led ap147_qtsw282_leds_gpio[] __initdata = {
+	{
+		.name		= "ap147:green:status",
+		.gpio		= AP147_QTSW282_GPIO_LED_GREEN,
+		.active_low	= 1,
+	},
+};
+
+static struct gpio_keys_button ap147_qtsw282_gpio_keys[] __initdata = {
+        {
+                .desc           = "Reset button",
+                .type           = EV_KEY,
+                .code           = KEY_RESTART,
+                .debounce_interval = AP147_KEYS_DEBOUNCE_INTERVAL,
+                .gpio           = AP147_QTSW282_GPIO_BTN_RESET,
+                .active_low     = 1,
+        },
+};
+#endif /* OK_PATCH */
+
+
+
 static void __init ap147_gpio_led_setup(int board_version)
 {
 	ath79_gpio_direction_select(ap147_gpios[board_version][WAN], true);
@@ -142,13 +176,76 @@ static void __init ap147_gpio_led_setup(int board_version)
 			ap147_gpio_keys);
 }
 
+#if OK_PATCH
+#define AP147_EINFO_OFFSET 0x20
+#define AP147_EINFO_DEV_NAME_LEN 33
+#define AP147_EINFO_DEV_NAME_OFFSET 10
+static char ok_dev_name[AP147_EINFO_DEV_NAME_LEN] = {0};
+static void __init ath79_init_dev_name(unsigned char *dst, const unsigned char *src)
+{
+    const unsigned char *ptr1;
+    const unsigned char *ptr2;
+    int size = 0;
+    ptr1 = ptr2 = src + AP147_EINFO_OFFSET + AP147_EINFO_DEV_NAME_OFFSET;
+    while (*ptr1++ != '\"');
+    size = ptr1 - ptr2;
+    size = (size < AP147_EINFO_DEV_NAME_LEN - 1) ? size : (AP147_EINFO_DEV_NAME_LEN - 1);
+    memcpy(dst, ptr2, size);
+    dst[size - 1]='\0';
+}
+#endif /* OK_PATCH */
+
 static void __init ap147_setup(void)
 {
 	u8 *art = (u8 *) KSEG1ADDR(0x1fff0000);
+    u8 board_id = *(u8 *) (art + AP147_WMAC1_CALDATA_OFFSET + BOARDID_OFFSET);
+
+	ath79_register_m25p80(NULL);
+
+#if OK_PATCH
+    ath79_init_dev_name(ok_dev_name, art);
+    printk("-->OK_DEV_NAME=%s ", ok_dev_name);
+
+/* supported device list */
+#define AP147_QTSW282_DEV_NAME        "W282"
+
+    if (!strcmp(ok_dev_name, AP147_QTSW282_DEV_NAME)) {
+	    ath79_gpio_direction_select(AP147_QTSW282_GPIO_LED_LAN, true);
+	    ath79_gpio_direction_select(AP147_QTSW282_GPIO_LED_2G, true);
+	    ath79_gpio_direction_select(AP147_QTSW282_GPIO_LED_5G, true);
+	    ath79_gpio_output_select(AP147_QTSW282_GPIO_LED_LAN,
+			QCA953X_GPIO_OUT_MUX_LED_LINK5);
+	    ath79_gpio_output_select(AP147_QTSW282_GPIO_LED_2G,
+			QCA953X_GPIO_OUT_MUX_LED_LINK1);
+	    ath79_gpio_output_select(AP147_QTSW282_GPIO_LED_5G,
+			QCA953X_GPIO_OUT_MUX_LED_LINK2);
+
+        ath79_register_leds_gpio(-1, ARRAY_SIZE(ap147_qtsw282_leds_gpio),
+                ap147_qtsw282_leds_gpio);
+        ath79_register_gpio_keys_polled(-1, AP147_KEYS_POLL_INTERVAL,
+                ARRAY_SIZE(ap147_qtsw282_gpio_keys),
+                ap147_qtsw282_gpio_keys);
+    } else {
+        printk("WARN: %s using default GPIO Setting.\n", ok_dev_name);
+
+        pr_info("AP147 Reference Board Id is %d\n",(u8)board_id);
+
+        if (board_id == AP147_V2_ID) {
+            /* Disabling the JTAG due to conflicting GPIO's.
+             * Can be re-enabled dynamically by writing appropriate
+             * value to GPIO_FUNCTION_ADDRESS register
+             */
+            ath79_gpio_function_enable(AR934X_GPIO_FUNC_JTAG_DISABLE);
+            ap147_gpio_led_setup(BOARD_V2);
+        } else {
+            ap147_gpio_led_setup(BOARD_V1);
+        }
+    }
+
+#else /* !OK_PATCH */
 
 	u8 board_id = *(u8 *) (art + AP147_WMAC1_CALDATA_OFFSET + BOARDID_OFFSET);
 	pr_info("AP147 Reference Board Id is %d\n",(u8)board_id);
-	ath79_register_m25p80(NULL);
 
 	if (board_id == AP147_V2_ID) {
 		/* Disabling the JTAG due to conflicting GPIO's.
@@ -160,6 +257,7 @@ static void __init ap147_setup(void)
 	} else {
 		ap147_gpio_led_setup(BOARD_V1);
 	}
+#endif /* OK_PATCH */
 
 	ath79_register_usb();
 	ath79_register_pci();
