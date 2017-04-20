@@ -237,7 +237,7 @@ static void __init ap152_mdio_setup(void)
 #define AP152_EINFO_DEV_NAME_LEN 33
 #define AP152_EINFO_DEV_NAME_OFFSET 10
 static char ok_dev_name[AP152_EINFO_DEV_NAME_LEN] = {0};
-void __init ath79_init_dev_name(unsigned char *dst, const unsigned char *src)
+static void __init ath79_init_dev_name(unsigned char *dst, const unsigned char *src)
 {
     const unsigned char *ptr1;
     const unsigned char *ptr2;
