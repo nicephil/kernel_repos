@@ -35,6 +35,9 @@
 #include "dev-spi.h"
 #include "dev-usb.h"
 #include "dev-wmac.h"
+#if OK_PATCH
+#include "dev-ap9x-pci.h"
+#endif
 
 #define AP152_GPIO_LED_WLAN             12
 #define AP152_GPIO_LED_WPS              13
@@ -57,6 +60,9 @@
 #define AP152_MAC0_OFFSET               0
 #define AP152_MAC1_OFFSET               6
 #define AP152_WMAC_CALDATA_OFFSET       0x1000
+#if OK_PATCH
+#define AP152_PCI_CALDATA_OFFSET        0x5000
+#endif
 
 #define AP152_GPIO_MDC			3
 #define AP152_GPIO_MDIO			4
@@ -299,7 +305,7 @@ static void __init ap152_setup(void)
 
 	ath79_register_leds_gpio(-1, ARRAY_SIZE(ap152_leds_gpio),
 			ap152_leds_gpio);
-        ath79_register_gpio_keys_polled(-1, AP152_KEYS_POLL_INTERVAL,
+    ath79_register_gpio_keys_polled(-1, AP152_KEYS_POLL_INTERVAL,
                                         ARRAY_SIZE(ap152_gpio_keys),
                                         ap152_gpio_keys);
 #endif /* OK_PATCH */
@@ -328,3 +334,150 @@ static void __init ap152_setup(void)
 
 MIPS_MACHINE(ATH79_MACH_AP152, "AP152", "Qualcomm Atheros AP152 reference board",
 	     ap152_setup);
+
+
+
+#if OK_PATCH
+
+#define UBNT_UNIFI_GPIO_LED_WHITE       7
+#define UBNT_UNIFI_GPIO_LED_BLUE        8
+
+static struct gpio_led ubnt_unifi_leds_gpio[] __initdata = {
+	{
+		.name		= "ubnt:orange:dome",
+		.gpio		= UBNT_UNIFI_GPIO_LED_WHITE,
+		.active_low	= 0,
+	}, {
+		.name		= "ubnt:green:dome",
+		.gpio		= UBNT_UNIFI_GPIO_LED_BLUE,
+		.active_low	= 0,
+	}
+};
+
+#define UBNT_UNIFI_GPIO_BTN_RESET		2
+
+#define UBNT_UNIFI_KEYS_POLL_INTERVAL	20
+#define UBNT_UNIFI_KEYS_DEBOUNCE_INTERVAL	(3 * UBNT_UNIFI_KEYS_POLL_INTERVAL)
+
+
+static struct gpio_keys_button ubnt_unifi_gpio_keys[] __initdata = {
+	{
+		.desc			= "reset",
+		.type			= EV_KEY,
+		.code			= KEY_RESTART,
+		.debounce_interval	= UBNT_UNIFI_KEYS_DEBOUNCE_INTERVAL,
+		.gpio			= UBNT_UNIFI_GPIO_BTN_RESET,
+		.active_low		= 1,
+	}
+};
+
+    
+static struct flash_platform_data ubnt_unifi_flash_data = {
+        /* mx25l12805d and mx25l12835f have the same JEDEC ID */
+        .type = "mx25l12805d",
+};
+
+static void __init ubnt_unifi_pro_setup(void)
+{
+	u8 *eeprom = (u8 *) KSEG1ADDR(0x1fff0000);
+
+	ath79_register_m25p80(&ubnt_unifi_flash_data);
+
+	ath79_register_leds_gpio(-1, ARRAY_SIZE(ubnt_unifi_leds_gpio),
+			ubnt_unifi_leds_gpio);
+
+    ath79_register_gpio_keys_polled(-1, AP152_KEYS_POLL_INTERVAL,
+                                        ARRAY_SIZE(ubnt_unifi_gpio_keys),
+                                        ubnt_unifi_gpio_keys);
+
+	ath79_register_usb();
+
+	ap152_mdio_setup();
+
+	mdiobus_register_board_info(ap152_mdio0_info,
+				    ARRAY_SIZE(ap152_mdio0_info));
+
+	ath79_register_wmac(eeprom + AP152_WMAC_CALDATA_OFFSET, NULL);
+
+    ap91_pci_init(eeprom + AP152_PCI_CALDATA_OFFSET, NULL);
+
+	/* GMAC0 is connected to an AR8337 switch */
+	ath79_init_mac(ath79_eth0_data.mac_addr, eeprom + AP152_MAC0_OFFSET, 0);
+	ath79_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_SGMII;
+	ath79_eth0_data.speed = SPEED_1000;
+	ath79_eth0_data.duplex = DUPLEX_FULL;
+	ath79_eth0_data.phy_mask = BIT(0);
+	ath79_eth0_data.force_link = 1;
+	ath79_eth0_data.mii_bus_dev = &ath79_mdio0_device.dev;
+	ath79_eth0_pll_data.pll_1000 = 0x06000000;
+	ath79_register_eth(0);
+}
+
+MIPS_MACHINE(ATH79_MACH_UBNT_UNIFI_PRO, "UBNT-UF-PRO", "Ubiquiti UniFi Pro",
+	     ubnt_unifi_pro_setup);
+
+
+static struct ar8327_pad_cfg ubnt_lite_ar8337_pad0_cfg = {
+	.mode = AR8327_PAD_MAC_SGMII,
+	.sgmii_txclk_phase_sel = AR8327_SGMII_CLK_PHASE_RISE,
+	.sgmii_rxclk_phase_sel = AR8327_SGMII_CLK_PHASE_FALL,
+};
+
+static struct ar8327_platform_data ubnt_lite_ar8337_data = {
+	.pad0_cfg = &ubnt_lite_ar8337_pad0_cfg,
+	.cpuport_cfg = {
+		.force_link = 1,
+		.speed = AR8327_PORT_SPEED_100,
+		.duplex = 1,
+		.txpause = 1,
+		.rxpause = 1,
+	},
+};
+
+static struct mdio_board_info ubnt_lite_mdio0_info[] = {
+	{
+		.bus_id = "ag71xx-mdio.0",
+		.phy_addr = 0,
+		.platform_data = &ubnt_lite_ar8337_data,
+	},
+};
+
+
+
+static void __init ubnt_unifi_lite_setup(void)
+{
+	u8 *eeprom = (u8 *) KSEG1ADDR(0x1fff0000);
+
+	ath79_register_m25p80(&ubnt_unifi_flash_data);
+
+	ath79_register_leds_gpio(-1, ARRAY_SIZE(ubnt_unifi_leds_gpio),
+			ubnt_unifi_leds_gpio);
+
+    ath79_register_gpio_keys_polled(-1, AP152_KEYS_POLL_INTERVAL,
+                                        ARRAY_SIZE(ubnt_unifi_gpio_keys),
+                                        ubnt_unifi_gpio_keys);
+
+	ath79_gpio_output_select(AP152_GPIO_MDC, QCA956X_GPIO_OUT_MUX_GE0_MDC);
+	ath79_gpio_output_select(AP152_GPIO_MDIO, QCA956X_GPIO_OUT_MUX_GE0_MDO);
+	ath79_register_mdio(0, ~BIT(4));
+
+	mdiobus_register_board_info(ubnt_lite_mdio0_info,
+				    ARRAY_SIZE(ubnt_lite_mdio0_info));
+
+	ath79_register_wmac(eeprom + AP152_WMAC_CALDATA_OFFSET, NULL);
+    ap91_pci_init(eeprom + AP152_PCI_CALDATA_OFFSET, NULL);
+
+	/* GMAC0 is connected to an AR8337 switch */
+	ath79_init_mac(ath79_eth0_data.mac_addr, eeprom + AP152_MAC0_OFFSET, 0);
+	ath79_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_SGMII;
+	ath79_eth0_data.phy_mask = BIT(4);
+	ath79_eth0_data.mii_bus_dev = &ath79_mdio0_device.dev;
+	ath79_eth0_pll_data.pll_10 = 0x00001313;
+	ath79_register_eth(0);
+}
+
+MIPS_MACHINE(ATH79_MACH_UBNT_UNIFI_LITE, "UBNT-UF-LITE", "Ubiquiti UniFi Lite",
+	     ubnt_unifi_lite_setup);
+
+
+#endif

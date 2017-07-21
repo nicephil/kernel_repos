@@ -33,9 +33,11 @@ enum ath79_mach_type {
 	ATH79_MACH_AP147,		/* Atheros AP147 reference board */
 	ATH79_MACH_AP151,		/* Atheros AP151 reference board */
 	ATH79_MACH_AP152,		/* Atheros AP152 reference board */
+#if OK_PATCH
 	ATH79_MACH_AP152_QTSA820,/* Atheros AP152-QTSA820 board */
 	ATH79_MACH_AP152_8200T2,/* Atheros AP152-8200T2 board */
 	ATH79_MACH_AP152_8200R2,/* Atheros AP152-8200R2 board */
+#endif
 	ATH79_MACH_AP81,		/* Atheros AP81 reference board */
 	ATH79_MACH_AP83,		/* Atheros AP83 */
 	ATH79_MACH_AP96,		/* Atheros AP96 */
@@ -117,6 +119,10 @@ enum ath79_mach_type {
 	ATH79_MACH_UBNT_RSPRO,		/* Ubiquiti RouterStation Pro */
 	ATH79_MACH_UBNT_RS,		/* Ubiquiti RouterStation */
 	ATH79_MACH_UBNT_UNIFI, 		/* Ubiquiti Unifi */
+#if OK_PATCH
+	ATH79_MACH_UBNT_UNIFI_PRO, 		/* Ubiquiti Unifi Pro */
+	ATH79_MACH_UBNT_UNIFI_LITE, 		/* Ubiquiti Unifi Lite*/
+#endif
 	ATH79_MACH_UBNT_UNIFI_OUTDOOR,	/* Ubiquiti UnifiAP Outdoor */
 	ATH79_MACH_UBNT_XM,		/* Ubiquiti Networks XM board rev 1.0 */
 	ATH79_MACH_WHR_G301N,		/* Buffalo WHR-G301N */
