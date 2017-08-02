@@ -164,7 +164,10 @@ config ATH79_MACH_AP147
 
 config ATH79_MACH_AP152
 	bool "Atheros AP152 reference board"
+	select SOC_AR724X
+    select SOC_QCA953X
 	select SOC_QCA956X
+	select ATH79_DEV_AP9X_PCI if PCI
 	select ATH79_DEV_GPIO_BUTTONS
 	select ATH79_DEV_LEDS_GPIO
 	select ATH79_DEV_SPI
