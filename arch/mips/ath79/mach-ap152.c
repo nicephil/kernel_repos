@@ -581,7 +581,7 @@ static void __init ubnt_unifi_lite_setup(void)
 static void __init ok_ubnt_unifi_setup(void)
 {
     u8 *eeprom = (u8 *) KSEG1ADDR(0x1fff0000);
-    u16 system_id = ntohs(*((u16*)(eeprom+12)));
+    u16 system_id = ntohs(*((u16*)(eeprom+SYSTEM_ID_OFFSET)));
 
     if (system_id == 0xe517) {
         printk("-->OK_DEV_NAME=UBNTLITE");
