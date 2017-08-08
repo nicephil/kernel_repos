@@ -517,9 +517,6 @@ static void __init ubnt_unifi_pro_setup(void)
 	ath79_register_eth(0);
 }
 
-MIPS_MACHINE(ATH79_MACH_UBNT_UNIFI_PRO, "UBNT-UF-PRO", "Ubiquiti UniFi Pro",
-	     ubnt_unifi_pro_setup);
-
 
 static struct ar8327_pad_cfg ubnt_lite_ar8337_pad0_cfg = {
 	.mode = AR8327_PAD_MAC_SGMII,
@@ -580,8 +577,28 @@ static void __init ubnt_unifi_lite_setup(void)
 	ath79_register_eth(0);
 }
 
-MIPS_MACHINE(ATH79_MACH_UBNT_UNIFI_LITE, "UBNT-UF-LITE", "Ubiquiti UniFi Lite",
-	     ubnt_unifi_lite_setup);
+#define SYSTEM_ID_OFFSET 12
+static void __init ok_ubnt_unifi_setup(void)
+{
+    u8 *eeprom = (u8 *) KSEG1ADDR(0x1fff0000);
+    u16 system_id = ntohs(*((u16*)(eeprom+12)));
 
+    if (system_id == 0xe517) {
+        printk("-->OK_DEV_NAME=UBNTLITE");
+        ubnt_unifi_lite_setup();
+    } else if (system_id == 0xe527) {
+        printk("-->OK_DEV_NAME=UBNTLR");
+        ubnt_unifi_lite_setup();
+    } else if (system_id == 0xe537) {
+        printk("-->OK_DEV_NAME=UBNTPRO");
+        ubnt_unifi_pro_setup();
+    } else {
+        printk("WARN: %x using default UBNTPRO Setting.", system_id);
+        ubnt_unifi_pro_setup();
+    }
+}
+
+MIPS_MACHINE(ATH79_MACH_UBNT_UNIFI, "UBNT-UF", "Ubiquiti UniFi",
+	     ok_ubnt_unifi_setup);
 
 #endif

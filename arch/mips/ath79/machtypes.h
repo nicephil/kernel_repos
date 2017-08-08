@@ -119,10 +119,6 @@ enum ath79_mach_type {
 	ATH79_MACH_UBNT_RSPRO,		/* Ubiquiti RouterStation Pro */
 	ATH79_MACH_UBNT_RS,		/* Ubiquiti RouterStation */
 	ATH79_MACH_UBNT_UNIFI, 		/* Ubiquiti Unifi */
-#if OK_PATCH
-	ATH79_MACH_UBNT_UNIFI_PRO, 		/* Ubiquiti Unifi Pro */
-	ATH79_MACH_UBNT_UNIFI_LITE, 		/* Ubiquiti Unifi Lite*/
-#endif
 	ATH79_MACH_UBNT_UNIFI_OUTDOOR,	/* Ubiquiti UnifiAP Outdoor */
 	ATH79_MACH_UBNT_XM,		/* Ubiquiti Networks XM board rev 1.0 */
 	ATH79_MACH_WHR_G301N,		/* Buffalo WHR-G301N */
