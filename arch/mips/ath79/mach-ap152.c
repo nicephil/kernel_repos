@@ -449,11 +449,11 @@ MIPS_MACHINE(ATH79_MACH_AP152, "AP152", "Qualcomm Atheros AP152 reference board"
 
 static struct gpio_led ubnt_unifi_leds_gpio[] __initdata = {
 	{
-		.name		= "ubnt:orange:dome",
+		.name		= "ubnt:white:dome",
 		.gpio		= UBNT_UNIFI_GPIO_LED_WHITE,
 		.active_low	= 0,
 	}, {
-		.name		= "ubnt:green:dome",
+		.name		= "ubnt:blue:dome",
 		.gpio		= UBNT_UNIFI_GPIO_LED_BLUE,
 		.active_low	= 0,
 	}
