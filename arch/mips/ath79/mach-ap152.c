@@ -229,7 +229,30 @@ static struct gpio_keys_button ap152_qtsw282_gpio_keys[] __initdata = {
         },
 };
 
+/* A750 */
 
+#define AP152_OKA750_GPIO_LED_GREEN	11
+
+#define AP152_OKA750_GPIO_BTN_RESET 7
+
+static struct gpio_led ap152_oka750_leds_gpio[] __initdata = {
+	{
+		.name		= "ap152:green:status",
+		.gpio		= AP152_OKA750_GPIO_LED_GREEN,
+		.active_low	= 1,
+	},
+};
+
+static struct gpio_keys_button ap152_oka750_gpio_keys[] __initdata = {
+        {
+                .desc           = "Reset button",
+                .type           = EV_KEY,
+                .code           = KEY_RESTART,
+                .debounce_interval = AP152_KEYS_DEBOUNCE_INTERVAL,
+                .gpio           = AP152_OKA750_GPIO_BTN_RESET,
+                .active_low     = 1,
+        },
+};
 
 #endif /* OK_PATCH */
 
@@ -307,6 +330,7 @@ static void __init ap152_setup(void)
 #define AP152_WL8200R2_DEV_NAME       "WL8200-R2"
 #define AP152_WL8200I2_DEV_NAME       "WL8200-I2"
 #define AP152_QTSW282_DEV_NAME        "W282"
+#define AP152_OKA750_DEV_NAME         "A750"
 
     if (!strcmp(ok_dev_name, AP152_QTSA820_DEV_NAME) || !strcmp(ok_dev_name, AP152_QTSA822_DEV_NAME)) {
         ath79_register_leds_gpio(-1, ARRAY_SIZE(ap152_qtsa820_leds_gpio),
@@ -346,6 +370,40 @@ static void __init ap152_setup(void)
         ath79_register_gpio_keys_polled(-1, AP152_KEYS_POLL_INTERVAL,
                 ARRAY_SIZE(ap152_qtsw282_gpio_keys),
                 ap152_qtsw282_gpio_keys);
+
+        ath79_register_pci();
+
+        ath79_register_wmac(art + AP152_WMAC_CALDATA_OFFSET, NULL);
+
+        ath79_register_mdio(0, 0x0);
+        ath79_register_mdio(1, 0x0);
+
+        ath79_init_mac(ath79_eth0_data.mac_addr, art + AP152_MAC0_OFFSET, 0);
+        ath79_init_mac(ath79_eth1_data.mac_addr, art + AP152_MAC1_OFFSET, 0);
+
+        /* WAN port */
+        ath79_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
+        ath79_eth0_data.speed = SPEED_100;
+        ath79_eth0_data.duplex = DUPLEX_FULL;
+        ath79_eth0_data.phy_mask = BIT(4);
+        ath79_register_eth(0);
+
+        /* LAN ports */
+        ath79_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_GMII;
+        ath79_eth1_data.speed = SPEED_1000;
+        ath79_eth1_data.duplex = DUPLEX_FULL;
+        ath79_switch_data.phy_poll_mask |= BIT(4);
+        ath79_switch_data.phy4_mii_en = 1;
+        ath79_register_eth(1);
+
+        return;
+
+    } else if (!strcmp(ok_dev_name, AP152_OKA750_DEV_NAME)) {
+        ath79_register_leds_gpio(-1, ARRAY_SIZE(ap152_oka750_leds_gpio),
+                ap152_oka750_leds_gpio);
+        ath79_register_gpio_keys_polled(-1, AP152_KEYS_POLL_INTERVAL,
+                ARRAY_SIZE(ap152_oka750_gpio_keys),
+                ap152_oka750_gpio_keys);
 
         ath79_register_pci();
 
