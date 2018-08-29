@@ -233,7 +233,7 @@ static struct gpio_keys_button ap152_qtsw282_gpio_keys[] __initdata = {
 
 #define AP152_OKA750_GPIO_LED_GREEN	11
 
-#define AP152_OKA750_GPIO_BTN_RESET 7
+#define AP152_OKA750_GPIO_BTN_RESET 17
 
 static struct gpio_led ap152_oka750_leds_gpio[] __initdata = {
 	{
