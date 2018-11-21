@@ -42,7 +42,7 @@
 
 #define DRIVER_NAME	"ath79-wdt"
 
-#define WDT_TIMEOUT	15	/* seconds */
+#define WDT_TIMEOUT	120	/* seconds */
 
 #define WDOG_CTRL_LAST_RESET	BIT(31)
 #define WDOG_CTRL_ACTION_MASK	3
@@ -131,6 +131,7 @@ static inline void ath79_wdt_disable(void)
 
 static int ath79_wdt_set_timeout(int val)
 {
+    pr_info("wdt_set_timeout:val:%d,max:%d\n", val, max_timeout);
 	if (val < 1 || val > max_timeout)
 		return -EINVAL;
 
