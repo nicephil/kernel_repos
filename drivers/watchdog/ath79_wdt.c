@@ -72,6 +72,9 @@ static int boot_status;
 static int max_timeout;
 static unsigned long long last_pet;
 static struct dentry *ath79_wdt_dbg_dir;
+#if OK_PATCH
+static int bit_count = 0;
+#endif
 
 static inline void ath79_wdt_keepalive(void)
 {
@@ -117,7 +120,18 @@ static irqreturn_t ath79_wdt_irq_handler(int irq, void *dev_id)
 #if defined(CONFIG_KEXEC) && defined(CONFIG_FTRACE)
 	ftrace_dump(DUMP_ALL);
 #endif
+
+#if OK_PATCH
+    if (bit_count >= 2) {
+	    panic("BUG :  ATH_WDT_TIMEOUT ");
+    } else {
+        ath79_wdt_enable();
+        bit_count ++;
+	    pr_info("wdt bit! now = %llu, count:%d\n", t, bit_count);
+    }
+#else
 	panic("BUG :  ATH_WDT_TIMEOUT ");
+#endif
 
 	return IRQ_HANDLED;
 }
