@@ -324,6 +324,7 @@ static void __init ap152_setup(void)
 /* supported device list */
 #define AP152_QTSA820_DEV_NAME        "A820"
 #define AP152_QTSA822_DEV_NAME        "A822"
+#define AP152_QTSA826_DEV_NAME        "A826"
 #define AP152_QTSA920_DEV_NAME        "A920"
 #define AP152_QTSA923_DEV_NAME        "A923"
 #define AP152_WL8200T2_DEV_NAME       "WL8200-T2"
@@ -332,7 +333,7 @@ static void __init ap152_setup(void)
 #define AP152_QTSW282_DEV_NAME        "W282"
 #define AP152_OKA750_DEV_NAME         "A750"
 
-    if (!strcmp(ok_dev_name, AP152_QTSA820_DEV_NAME) || !strcmp(ok_dev_name, AP152_QTSA822_DEV_NAME)) {
+    if (!strcmp(ok_dev_name, AP152_QTSA820_DEV_NAME) || !strcmp(ok_dev_name, AP152_QTSA822_DEV_NAME) || !strcmp(ok_dev_name, AP152_QTSA826_DEV_NAME)) {
         ath79_register_leds_gpio(-1, ARRAY_SIZE(ap152_qtsa820_leds_gpio),
                 ap152_qtsa820_leds_gpio);
         ath79_register_gpio_keys_polled(-1, AP152_KEYS_POLL_INTERVAL,
