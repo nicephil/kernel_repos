@@ -333,8 +333,11 @@ static void __init ap152_setup(void)
 #define AP152_QTSW282_DEV_NAME        "W282"
 #define AP152_OKA750_DEV_NAME         "A750"
 #define AP152_OKA751_DEV_NAME         "A751"
+#define AP152_WA115AC_DEV_NAME         "WA115AC"
 
-    if (!strcmp(ok_dev_name, AP152_QTSA820_DEV_NAME) || !strcmp(ok_dev_name, AP152_QTSA822_DEV_NAME) || !strcmp(ok_dev_name, AP152_QTSA826_DEV_NAME)) {
+    if (!strcmp(ok_dev_name, AP152_QTSA820_DEV_NAME) || !strcmp(ok_dev_name, AP152_QTSA822_DEV_NAME) 
+            || !strcmp(ok_dev_name, AP152_QTSA826_DEV_NAME)
+            || !strcmp(ok_dev_name, AP152_WA115AC_DEV_NAME) ) {
         ath79_register_leds_gpio(-1, ARRAY_SIZE(ap152_qtsa820_leds_gpio),
                 ap152_qtsa820_leds_gpio);
         ath79_register_gpio_keys_polled(-1, AP152_KEYS_POLL_INTERVAL,
